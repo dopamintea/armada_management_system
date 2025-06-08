@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"armada_management_system/internal/dto"
+	"armada_management_system/internal/seeder"
 	"armada_management_system/internal/service"
 	"encoding/json"
 	"log"
@@ -41,5 +42,7 @@ func StartListener() {
 	}
 
 	log.Printf("Subscribed to topic: %s", topic)
+
+	seeder.InitialSeed()
 }
 
