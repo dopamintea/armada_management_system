@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: armada_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json
+      - ./pgadmin/.pgpass:/pgpass
+
+  rabbitmq:
+    image: rabbitmq:4.1.1-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  api:
+    build: .
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    command: ["./api"]
+
+  mqtt_listener:
+    build: .
+    depends_on:
+      - mosquitto
+      - rabbitmq
+    command: ["./mqtt_listener"]
+    healthcheck:
+      test: ["CMD", "pgrep", "mqtt_listener"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: .
+    depends_on:
+      - mosquitto
+      - rabbitmq
+    command: ["./worker"]
+    healthcheck:
+      test: ["CMD", "pgrep", "worker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mock_publisher:
+    build: .
+    depends_on:
+      mqtt_listener:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+    command: ["./mock_publisher"]
+
+volumes:
+  pgdata:
+  pgadmin_data:
