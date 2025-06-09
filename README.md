@@ -52,9 +52,9 @@ GET	/vehicles/:vehicle_id/location
 ```
 Get location of :vehicle_id based on time range
 ```bash
-GET	/vehicles/:vehicle_id/history?from=...&to=...	
+GET	/vehicles/:vehicle_id/history?start=...&end=...	
 ```
-param used; `"from" #unix timestamp` and `"to" #unix timestamp`
+param used; `"start" #unix timestamp` and `"end" #unix timestamp`
 
 The project is structured with clean code practices in mind, following the SOLID principles for maintainability and scalability.
 
